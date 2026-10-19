@@ -1,0 +1,118 @@
+// schema.prisma - Definición de la estructura de la base de datos de HourPlay
+// Este archivo define los modelos (tablas) y sus relaciones usando Prisma ORM.
+// Prisma genera automáticamente las migraciones y el cliente para interactuar con la DB.
+
+generator client {
+  provider = "prisma-client-js"
+  // He dejado la configuracion por defecto del generador para que Node.js 
+  // encuentre el cliente automaticamente en la carpeta node_modules.
+  // De esta forma evito errores de inicializacion durante el arranque del servidor.
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ MODELO: Usuario ============
+// Representa a cada usuario registrado en HourPlay.
+// La arquitectura híbrida de autenticación permite el acceso local 
+// mediante credenciales encriptadas y facilita una futura 
+// integración con proveedores OAuth. Se ha añadido la propiedad password
+// como opcional para persistir el hash criptográfico generado en el backend.
+model Usuario {
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  nombre             String?
+  password           String?
+  fotoUrl            String?
+  proveedorAuth      String   
+  proveedorId        String   
+  fechaCreacion      DateTime @default(now())
+  fechaActualizacion DateTime @updatedAt
+  juegos             JuegoUsuario[]
+  
+  @@map("usuarios")
+}
+
+// ============ MODELO: Juego ============
+// Si usamos APIs externas (RAWG + HowLongToBeat), este modelo NO se usa.
+// Pero si el tutor NO permite APIs externas, aquí guardaríamos el catálogo de juegos.
+// Por ahora lo dejamos comentado, lo activaremos solo si hace falta.
+
+// model Juego {
+//   id              String    @id @default(uuid())
+//   titulo          String
+//   descripcion     String?
+//   genero          String?
+//   plataforma      String?
+//   caratulaUrl     String?
+//   duracionPrincipal Int?    // Tiempo en minutos para completar historia principal
+//   duracionTotal   Int?      // Tiempo para 100% completar
+//   fechaCreacion   DateTime  @default(now())
+//   
+//   juegosUsuario   JuegoUsuario[]
+//   
+//   @@map("juegos")
+// }
+
+// ============ MODELO: JuegoUsuario ============
+// Tabla intermedia que relaciona usuarios con sus juegos.
+// Aquí guardamos el estado personal de cada juego (pendiente, jugando, completado)
+// y datos específicos del usuario (prioridad, progreso, notas).
+model JuegoUsuario {
+  id              String    @id @default(uuid())
+  usuarioId       String
+  
+  juegoIdExterno  String
+  titulo          String
+  caratulaUrl     String?
+  genero          String?
+  plataforma      String?
+  duracionPrincipal Int?
+  duracionTotal   Int?
+  
+  estado          String    @default("pendiente")
+  prioridad       String    @default("media")
+  progreso        Int       @default(0)
+  notasPersonales String?
+  valoracion      Float?    // ← ESTA LÍNEA DEBE ESTAR
+  
+  fechaAgregado   DateTime  @default(now())
+  fechaActualizacion DateTime @updatedAt
+  
+  usuario         Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  
+  @@map("juegos_usuario")
+  @@index([usuarioId])
+}
+
+// ============ MODELO: Sesion (opcional - para calendario) ============
+// Representa sesiones de juego planificadas por el usuario en el calendario.
+// Esta funcionalidad es secundaria, se implementa después del motor de recomendación.
+model Sesion {
+  id              String    @id @default(uuid())
+  usuarioId       String
+  juegoTitulo     String
+  fechaInicio     DateTime
+  fechaFin        DateTime
+  completada      Boolean   @default(false)
+  notas           String?
+  fechaCreacion   DateTime  @default(now())
+  
+  @@map("sesiones")
+  @@index([usuarioId])
+}
+
+// ============ MODELO: Session (sesiones de login) ============
+// Almacén de las sesiones de inicio de sesión de express-session.
+// No confundir con Sesion (partidas planificadas en el calendario).
+// El nombre del modelo lo exige @quixo3/prisma-session-store (prisma.session).
+model Session {
+  id        String   @id
+  sid       String   @unique
+  data      String   @db.MediumText
+  expiresAt DateTime
+
+  @@map("sesiones_login")
+}

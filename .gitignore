@@ -1,0 +1,21 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (contienen claves y contraseñas)
+.env
+.env.*
+!.env.example
+
+# Compilaciones
+dist/
+dist-ssr/
+
+# Logs
+*.log
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
