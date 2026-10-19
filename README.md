@@ -1,5 +1,7 @@
 # HourPlay
 
+**Español** | [English](README.en.md)
+
 Aplicación web para organizar tu biblioteca de videojuegos, planificar sesiones de juego y recibir recomendaciones según el tiempo libre que tengas.
 
 - **Frontend** (`client/`): React + Vite + Tailwind CSS
