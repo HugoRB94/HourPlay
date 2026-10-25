@@ -46,6 +46,7 @@ router.post('/registro', async (req, res) => {
         return res.status(500).json({ exito: false, mensaje: 'Error al iniciar sesión tras registro' });
       }
       console.log("=== USUARIO CREADO Y SESIÓN GUARDADA ===", nuevoUsuario.id);
+<<<<<<< HEAD
       // Devolvemos también el id para que el cliente guarde el usuario real
       // en el contexto en lugar de un identificador provisional.
       res.json({
@@ -53,6 +54,9 @@ router.post('/registro', async (req, res) => {
         mensaje: 'Usuario registrado correctamente',
         usuario: { id: nuevoUsuario.id, nombre: nuevoUsuario.nombre }
       });
+=======
+      res.json({ exito: true, mensaje: 'Usuario registrado correctamente', usuario: { nombre: nuevoUsuario.nombre } });
+>>>>>>> 283a092f89dc269424080524da2e90e0a27737c0
     });
     
   } catch (error) {
