@@ -182,6 +182,17 @@ router.get('/estadisticas', async (req, res) => {
       ? Math.round((distribucionEstados.completado / juegos.length) * 100) 
       : 0;
 
+    // Nota media y podio, solo con los juegos que el usuario ha valorado
+    const valorados = juegos.filter(j => j.valoracion !== null && j.valoracion !== undefined);
+    const notaMedia = valorados.length > 0
+      ? Math.round((valorados.reduce((total, j) => total + j.valoracion, 0) / valorados.length) * 10) / 10
+      : null;
+
+    const topValorados = [...valorados]
+      .sort((a, b) => b.valoracion - a.valoracion || a.titulo.localeCompare(b.titulo))
+      .slice(0, 3)
+      .map(j => ({ id: j.id, titulo: j.titulo, caratulaUrl: j.caratulaUrl, valoracion: j.valoracion }));
+
     res.json({
       exito: true,
       datos: {
@@ -191,7 +202,10 @@ router.get('/estadisticas', async (req, res) => {
         porcentajeCompletado,
         totalJuegos: juegos.length,
         juegosCompletados: distribucionEstados.completado,
-        juegosPendientes: distribucionEstados.pendiente + distribucionEstados.jugando
+        juegosPendientes: distribucionEstados.pendiente + distribucionEstados.jugando,
+        notaMedia,
+        juegosValorados: valorados.length,
+        topValorados
       }
     });
   } catch (error) {

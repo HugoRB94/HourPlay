@@ -1,6 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Library, Sparkles, Calendar, BarChart3, Search, Clock } from 'lucide-react';
 import { API_URL, obtenerPortadasInicio } from '../servicios/api';
+import DemoRecomendador from '../components/DemoRecomendador';
+import VistaPreviaEstadisticas from '../components/VistaPreviaEstadisticas';
+
+// Pasos de la sección "Cómo funciona". Mencionan las fuentes reales de datos
+// (RAWG y HowLongToBeat) para que el visitante sepa de dónde sale la información.
+const PASOS = [
+  { icono: Search, titulo: 'Añade tus juegos', texto: 'Búscalos en el catálogo de RAWG y guárdalos en tu biblioteca con su estado.' },
+  { icono: Clock, titulo: 'Calculamos su duración', texto: 'HourPlay consulta HowLongToBeat para saber cuánto te queda de cada juego.' },
+  { icono: Sparkles, titulo: 'Planifica y juega', texto: 'Dinos cuánto tiempo tienes y te recomendamos el juego que mejor encaja.' }
+];
+
+// Secciones principales de la aplicación, mostradas como tarjetas bajo el botón
+// principal para que el visitante vea todo lo que ofrece HourPlay de un vistazo.
+// Usan los mismos iconos que la barra de navegación para mantener la coherencia.
+const SECCIONES = [
+  { ruta: '/biblioteca', icono: Library, titulo: 'Biblioteca', texto: 'Todos tus juegos, con su estado y progreso.' },
+  { ruta: '/recomendador', icono: Sparkles, titulo: 'Recomendador', texto: 'Te dice qué jugar según tu tiempo libre.' },
+  { ruta: '/planificador', icono: Calendar, titulo: 'Planificador', texto: 'Organiza tus próximas sesiones de juego.' },
+  { ruta: '/estadisticas', icono: BarChart3, titulo: 'Estadísticas', texto: 'Tus géneros favoritos y horas jugadas.' }
+];
 
 // Este componente representa la página de inicio (landing page) de HourPlay.
 // Su propósito es presentar el proyecto a usuarios que aún no han iniciado sesión,
@@ -17,7 +38,9 @@ function Home() {
   // lo que facilita futuros cambios sin modificar la estructura del componente.
   // Esta práctica es especialmente útil si en el futuro se implementa multiidioma.
   const nombreApp = "HourPlay";
-  const descripcionApp = "Tu gestor de videojuegos inteligente";
+  // El titular destaca lo que diferencia a HourPlay: recomendar según el tiempo libre
+  const titularApp = "¿Tienes 1 hora? Te decimos a qué jugar.";
+  const descripcionApp = "Organiza tu biblioteca, planifica tus sesiones y descubre qué juego encaja con tu tiempo libre.";
   const textoBoton = "Empezar a organizar mi biblioteca";
 
   // Portadas para el mosaico decorativo del fondo. Si la petición falla la
@@ -68,7 +91,11 @@ function Home() {
     // El padding horizontal (px-4) asegura márgenes en dispositivos móviles.
     // 'relative isolate overflow-hidden' crea un contexto propio para que el
     // mosaico del fondo quede detrás del contenido y no desborde la pantalla.
-    <main className="relative isolate overflow-hidden flex flex-col items-center justify-center min-h-screen pt-16 px-4">
+    // La página se divide en dos bloques: la portada (con el mosaico de fondo) y,
+    // debajo, la demo del recomendador. El mosaico vive solo en la portada para
+    // que su altura no dependa de la longitud total de la página.
+    <main>
+    <section className="relative isolate overflow-hidden flex flex-col items-center justify-center min-h-screen pt-24 pb-16 px-4">
 
       {/* Fondo decorativo: mosaico de portadas difuminadas */}
       {/* Es puramente estético (aria-hidden y alt vacío) para no molestar a los
@@ -110,11 +137,14 @@ function Home() {
         {nombreApp}
       </h1>
 
-      {/* Descripción secundaria */}
+      {/* Titular y descripción secundaria */}
       {/* El color slate-400 proporciona un contraste suave pero legible sobre el fondo oscuro.
           El max-w-2xl limita el ancho del texto para mejorar la legibilidad según
           principios de diseño tipográfico (líneas no demasiado largas). */}
-      <p className="mt-6 text-slate-400 text-xl font-medium max-w-2xl text-center leading-relaxed">
+      <p className="mt-6 text-2xl md:text-3xl font-bold text-white text-center">
+        {titularApp}
+      </p>
+      <p className="mt-4 text-slate-400 text-lg md:text-xl font-medium max-w-2xl text-center leading-relaxed">
         {descripcionApp}
       </p>
 
@@ -133,6 +163,71 @@ function Home() {
       >
         {textoBoton}
       </button>
+
+      {/* Tarjetas de las secciones */}
+      {/* Son enlaces: si el visitante no ha iniciado sesión, RutaProtegida
+          se encarga de llevarlo al login. */}
+      <div className="mt-16 w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {SECCIONES.map((seccion) => {
+          const Icono = seccion.icono;
+          return (
+            <Link
+              key={seccion.ruta}
+              to={seccion.ruta}
+              className="group p-5 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur hover:border-cyan-500/60 transition-colors"
+            >
+              <Icono size={28} className="text-cyan-400 group-hover:scale-110 transition-transform" />
+              <h2 className="mt-3 font-bold text-lg">{seccion.titulo}</h2>
+              <p className="mt-1 text-sm text-slate-400">{seccion.texto}</p>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+
+    {/* Cómo funciona + vista previa */}
+    {/* En pantallas grandes se muestran en dos columnas (pasos a la izquierda y
+        maqueta a la derecha); en móvil se apilan. */}
+    <section className="px-4 py-24">
+      <div className="max-w-5xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+        <div>
+          <h2 className="text-3xl md:text-4xl font-black">Cómo funciona</h2>
+          <ol className="mt-8 space-y-6">
+            {PASOS.map((paso, i) => {
+              const Icono = paso.icono;
+              return (
+                <li key={paso.titulo} className="flex gap-4">
+                  {/* Número del paso dentro de un círculo con el degradado de la marca */}
+                  <span className="shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center font-bold">
+                    {i + 1}
+                  </span>
+                  <div>
+                    <h3 className="flex items-center gap-2 font-bold text-lg">
+                      <Icono size={18} className="text-cyan-400" />
+                      {paso.titulo}
+                    </h3>
+                    <p className="mt-1 text-slate-400">{paso.texto}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+        <div className="flex justify-center">
+          <VistaPreviaEstadisticas />
+        </div>
+      </div>
+    </section>
+
+    {/* Demo del recomendador */}
+    {/* Permite probar la funcionalidad estrella sin registrarse, con una biblioteca de ejemplo */}
+    <section className="flex flex-col items-center px-4 pb-24">
+      <h2 className="text-3xl md:text-4xl font-black text-center">Pruébalo ahora</h2>
+      <p className="mt-3 mb-8 text-slate-400 text-center max-w-xl">
+        Así funciona el recomendador: tú dices cuánto tiempo tienes y HourPlay elige el juego que mejor encaja.
+      </p>
+      <DemoRecomendador />
+    </section>
     </main>
   );
 }

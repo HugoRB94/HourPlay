@@ -1,13 +1,17 @@
 // components/Planificador.jsx
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Plus, Trash2, Clock, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Trash2, Clock, X, CheckCircle2, RotateCcw, Trophy } from 'lucide-react';
 import SelectorFecha from '../components/SelectorFecha';
-import { API_URL } from '../servicios/api';
+import { API_URL, marcarSesionCompletada } from '../servicios/api';
+import { useNotificaciones } from '../contextos/NotificacionesContext';
 
 function Planificador() {
+  const { notificar, confirmar } = useNotificaciones();
   const [sesiones, setSesiones] = useState([]);
   const [juegos, setJuegos] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
+  // Pestaña visible: 'planificadas' o 'realizadas'
+  const [pestana, setPestana] = useState('planificadas');
   const [nuevaSesion, setNuevaSesion] = useState({
     juegoTitulo: '',
     fechaInicio: '',
@@ -67,7 +71,7 @@ function Planificador() {
     e.preventDefault();
     // El calendario propio no admite el atributo 'required', así que validamos aquí
     if (!nuevaSesion.fechaInicio) {
-      alert('Elige un día en el calendario');
+      notificar('Elige un día en el calendario', 'info');
       return;
     }
     try {
@@ -90,7 +94,7 @@ function Planificador() {
         setMostrarModal(false);
         obtenerSesiones(); 
         setNuevaSesion({ juegoTitulo: '', fechaInicio: '', notas: '' });
-        alert('¡Sesion programada con exito!~');
+        notificar('¡Sesión programada con éxito!');
       }
     } catch (error) {
       console.error("Error al guardar", error);
@@ -98,23 +102,57 @@ function Planificador() {
   };
 
   const eliminarSesion = async (id) => {
-    if (!confirm("¿Seguro que quieres borrar esta sesion?")) return;
+    const aceptado = await confirmar({
+      titulo: 'Borrar sesión',
+      mensaje: '¿Seguro que quieres borrar esta sesión?',
+      textoConfirmar: 'Borrar'
+    });
+    if (!aceptado) return;
     try {
-      const res = await fetch(`${API_URL}/sesiones/${id}`, { 
+      const res = await fetch(`${API_URL}/sesiones/${id}`, {
         method: 'DELETE',
         credentials: 'include'
       });
-      
+
       if (res.ok) {
         obtenerSesiones();
+        notificar('Sesión borrada');
+      } else {
+        notificar('Error al borrar la sesión', 'error');
       }
     } catch (error) {
       console.error("Error al eliminar", error);
+      notificar('Error al borrar la sesión', 'error');
     }
   };
 
+  // Cambia la sesion entre planificada y realizada.
+  // Actualizamos el estado local al momento para que la tarjeta cambie de pestaña sin esperar.
+  const alternarCompletada = async (sesion) => {
+    const completada = !sesion.completada;
+    setSesiones(prev => prev.map(s => s.id === sesion.id ? { ...s, completada } : s));
+    try {
+      await marcarSesionCompletada(sesion.id, completada);
+    } catch (error) {
+      console.error("Error al actualizar", error);
+      obtenerSesiones();
+    }
+  };
+
+  const planificadas = sesiones.filter(s => !s.completada);
+  // Las realizadas se muestran de la mas reciente a la mas antigua
+  const realizadas = sesiones
+    .filter(s => s.completada)
+    .sort((a, b) => new Date(b.fechaInicio) - new Date(a.fechaInicio));
+  const sesionesVisibles = pestana === 'planificadas' ? planificadas : realizadas;
+
+  const pestanas = [
+    { id: 'planificadas', etiqueta: 'Planificadas', icono: Clock, total: planificadas.length },
+    { id: 'realizadas', etiqueta: 'Realizadas', icono: CheckCircle2, total: realizadas.length }
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-950 pt-24 px-6 text-white">
+    <div className="min-h-screen pt-24 px-6 text-white">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -134,28 +172,78 @@ function Planificador() {
           </button>
         </div>
 
+        {/* Pestañas para alternar entre sesiones pendientes y ya jugadas */}
+        <div className="flex gap-2 mb-6 bg-slate-900 border border-slate-800 p-1 rounded-xl w-fit">
+          {pestanas.map(({ id, etiqueta, icono: Icono, total }) => (
+            <button
+              key={id}
+              onClick={() => setPestana(id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                pestana === id
+                  ? (id === 'planificadas' ? 'bg-cyan-600 text-white' : 'bg-emerald-600 text-white')
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Icono size={16} />
+              {etiqueta}
+              <span className={`text-xs px-2 py-0.5 rounded-full ${pestana === id ? 'bg-black/20' : 'bg-slate-800'}`}>
+                {total}
+              </span>
+            </button>
+          ))}
+        </div>
+
         <div className="grid gap-4">
-          {sesiones.length === 0 ? (
+          {sesionesVisibles.length === 0 ? (
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center">
-              <Clock className="mx-auto text-slate-700 mb-4" size={48} />
-              <p className="text-slate-500">No tienes sesiones programadas.</p>
+              {pestana === 'planificadas' ? (
+                <>
+                  <Clock className="mx-auto text-slate-700 mb-4" size={48} />
+                  <p className="text-slate-500">No tienes sesiones programadas.</p>
+                </>
+              ) : (
+                <>
+                  <Trophy className="mx-auto text-slate-700 mb-4" size={48} />
+                  <p className="text-slate-500">Aun no has marcado ninguna sesion como realizada.</p>
+                </>
+              )}
             </div>
           ) : (
-            sesiones.map(sesion => (
-              <div key={sesion.id} className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex justify-between items-center hover:border-slate-700 transition-all">
+            sesionesVisibles.map(sesion => (
+              <div
+                key={sesion.id}
+                className={`bg-slate-900 border p-5 rounded-xl flex justify-between items-center transition-all ${
+                  sesion.completada ? 'border-emerald-900/60 hover:border-emerald-800' : 'border-slate-800 hover:border-slate-700'
+                }`}
+              >
                 <div>
-                  <h3 className="text-cyan-400 font-bold text-lg">{sesion.juegoTitulo}</h3>
+                  <h3 className={`font-bold text-lg flex items-center gap-2 ${sesion.completada ? 'text-emerald-400' : 'text-cyan-400'}`}>
+                    {sesion.completada && <CheckCircle2 size={18} />}
+                    {sesion.juegoTitulo}
+                  </h3>
                   <p className="text-slate-300 text-sm">
                     {new Date(sesion.fechaInicio).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                   </p>
                   {sesion.notas && <p className="text-slate-500 text-xs mt-1 italic">"{sesion.notas}"</p>}
                 </div>
-                <button 
-                  onClick={() => eliminarSesion(sesion.id)}
-                  className="text-slate-600 hover:text-red-400 transition-colors p-2"
-                >
-                  <Trash2 size={20} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => alternarCompletada(sesion)}
+                    title={sesion.completada ? 'Volver a planificadas' : 'Marcar como realizada'}
+                    className={`p-2 transition-colors ${
+                      sesion.completada ? 'text-slate-600 hover:text-cyan-400' : 'text-slate-600 hover:text-emerald-400'
+                    }`}
+                  >
+                    {sesion.completada ? <RotateCcw size={20} /> : <CheckCircle2 size={20} />}
+                  </button>
+                  <button
+                    onClick={() => eliminarSesion(sesion.id)}
+                    title="Borrar sesion"
+                    className="text-slate-600 hover:text-red-400 transition-colors p-2"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
               </div>
             ))
           )}

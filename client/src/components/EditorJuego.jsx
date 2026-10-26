@@ -2,8 +2,10 @@
 import { useState } from 'react';
 import { X, Save, Star, MessageSquare, BarChart2, Tag, Clock, Minus, Plus } from 'lucide-react';
 import { actualizarJuego } from '../servicios/api';
+import { useNotificaciones } from '../contextos/NotificacionesContext';
 
 function EditorJuego({ juego, onCerrar, onActualizado }) {
+  const { notificar } = useNotificaciones();
   // Estados vinculados a los nombres de tu tabla MySQL
   const [estado, setEstado] = useState(juego.estado || 'pendiente');
   const [prioridad, setPrioridad] = useState(juego.prioridad || 'media');
@@ -11,13 +13,14 @@ function EditorJuego({ juego, onCerrar, onActualizado }) {
   const [nota, setNota] = useState(juego.valoracion || 0);
   const [notasPersonales, setNotasPersonales] = useState(juego.notasPersonales || '');
 
-  // Mantiene la nota entre 0 y 10 y redondeada a medios puntos
+  // Mantiene la nota entre 0 y 10 y redondeada a un decimal.
+  // Acepta coma o punto como separador ("8,6" o "8.6")
   const limitarNota = (valor) => {
-    const numero = Number(valor);
+    const numero = Number(String(valor).replace(',', '.'));
     if (!Number.isFinite(numero)) return 0;
-    return Math.min(10, Math.max(0, Math.round(numero * 2) / 2));
+    return Math.min(10, Math.max(0, Math.round(numero * 10) / 10));
   };
-  const cambiarNota = (incremento) => setNota((actual) => limitarNota(Number(actual) + incremento));
+  const cambiarNota = (incremento) => setNota((actual) => limitarNota(limitarNota(actual) + incremento));
   const [duracion, setDuracion] = useState(juego.duracionPrincipal || '');
   const [enviando, setEnviando] = useState(false);
 
@@ -38,14 +41,15 @@ function EditorJuego({ juego, onCerrar, onActualizado }) {
       const respuesta = await actualizarJuego(juego.id, datosActualizados);
 
       if (respuesta.exito) {
-        onActualizado(); 
+        onActualizado();
+        notificar('Cambios guardados');
         onCerrar();
       } else {
-        alert('Error al guardar: ' + respuesta.mensaje);
+        notificar('Error al guardar: ' + respuesta.mensaje, 'error');
       }
     } catch (error) {
       console.error('Error al actualizar:', error);
-      alert('Error de conexión al guardar~');
+      notificar('Error de conexión al guardar', 'error');
     } finally {
       setEnviando(false);
     }
@@ -137,29 +141,31 @@ function EditorJuego({ juego, onCerrar, onActualizado }) {
                 <div className="flex items-center bg-slate-800 border border-slate-700 rounded-xl focus-within:border-cyan-500 transition-all">
                   <button
                     type="button"
-                    onClick={() => cambiarNota(-0.5)}
-                    disabled={Number(nota) <= 0}
+                    onClick={() => cambiarNota(-0.1)}
+                    disabled={limitarNota(nota) <= 0}
                     aria-label="Bajar nota"
                     className="p-3 text-slate-400 hover:text-cyan-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-colors"
                   >
                     <Minus size={18} />
                   </button>
                   <div className="flex-1 flex items-baseline justify-center gap-1">
+                    {/* Campo de texto (no type="number") para que se pueda escribir
+                        la coma decimal sin que el navegador vacíe el valor */}
                     <input
-                      type="number" step="0.5" min="0" max="10"
+                      type="text"
                       inputMode="decimal"
                       value={nota}
-                      onChange={(e) => setNota(e.target.value)}
+                      onChange={(e) => setNota(e.target.value.replace(/[^0-9.,]/g, ''))}
                       onBlur={() => setNota(limitarNota(nota))}
                       aria-label="Valoración de 0 a 10"
-                      className="w-14 bg-transparent text-white text-lg font-semibold text-center outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      className="w-14 bg-transparent text-white text-lg font-semibold text-center outline-none"
                     />
                     <span className="text-slate-500">/ 10</span>
                   </div>
                   <button
                     type="button"
-                    onClick={() => cambiarNota(0.5)}
-                    disabled={Number(nota) >= 10}
+                    onClick={() => cambiarNota(0.1)}
+                    disabled={limitarNota(nota) >= 10}
                     aria-label="Subir nota"
                     className="p-3 text-slate-400 hover:text-cyan-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-colors"
                   >
@@ -170,7 +176,7 @@ function EditorJuego({ juego, onCerrar, onActualizado }) {
                     puede pulsar para fijar la nota directamente */}
                 <div className="flex justify-center gap-1 mt-2">
                   {[1, 2, 3, 4, 5].map((estrella) => {
-                    const relleno = Math.min(Math.max(Number(nota) / 2 - (estrella - 1), 0), 1);
+                    const relleno = Math.min(Math.max(limitarNota(nota) / 2 - (estrella - 1), 0), 1);
                     return (
                       <button
                         key={estrella}

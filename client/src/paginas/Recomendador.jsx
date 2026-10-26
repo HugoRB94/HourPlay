@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Sparkles, Dice6, RefreshCw, Gamepad2, Check } from 'lucide-react';
 import { obtenerRecomendacion, obtenerRecomendacionAleatoria, actualizarJuego } from '../servicios/api';
+import { useNotificaciones } from '../contextos/NotificacionesContext';
 
 // Opciones de tiempo predefinidas (en minutos)
 const OPCIONES_TIEMPO = [
@@ -17,6 +18,7 @@ const OPCIONES_TIEMPO = [
 ];
 
 function Recomendador() {
+  const { notificar } = useNotificaciones();
   const navigate = useNavigate();
 
   // La identidad del usuario la resuelve el servidor a partir de la cookie de
@@ -82,11 +84,11 @@ function Recomendador() {
         setMarcadoJugando(true);
         setRecomendacion(prev => ({ ...prev, datos: { ...prev.datos, estado: 'jugando' } }));
       } else {
-        alert(respuesta.mensaje || 'No se pudo actualizar el juego');
+        notificar(respuesta.mensaje || 'No se pudo actualizar el juego', 'error');
       }
     } catch (error) {
       console.error('Error al marcar como jugando:', error);
-      alert('Error de conexión al actualizar el juego');
+      notificar('Error de conexión al actualizar el juego', 'error');
     } finally {
       setMarcandoJugando(false);
     }

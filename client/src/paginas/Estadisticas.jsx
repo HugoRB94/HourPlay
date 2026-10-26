@@ -15,7 +15,8 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Sector, LabelList } from 'recharts';
 import { obtenerEstadisticas } from '../servicios/api';
-import { Trophy, Clock, Gamepad2, Target, PieChart as IconoTarta, BarChart3 } from 'lucide-react';
+import { Trophy, Clock, Gamepad2, Target, PieChart as IconoTarta, BarChart3, Star } from 'lucide-react';
+import { coloresNota } from '../utilidades/coloresNota';
 
 // Superficie de las tarjetas (slate-900). Se usa también como "hueco" de 2px
 // entre segmentos para que se distingan aunque dos colores se parezcan.
@@ -30,6 +31,14 @@ const ESTADOS = [
   { clave: 'abandonado', nombre: 'Abandonados', color: '#e34948' }
 ];
 const COLOR_GENEROS = '#0891b2';
+
+// Puestos del podio en orden visual (2º - 1º - 3º), con su color de medalla
+// y la altura del pedestal para que el primero quede más alto.
+const PUESTOS_PODIO = [
+  { posicion: 2, color: '#cbd5e1', altura: 'h-20' },
+  { posicion: 1, color: '#facc15', altura: 'h-28' },
+  { posicion: 3, color: '#d97706', altura: 'h-14' }
+];
 
 function Estadisticas() {
   const [data, setData] = useState(null);
@@ -73,11 +82,27 @@ function Estadisticas() {
   const dataGeneros = data.topGeneros || [];
 
   return (
-    <div className="min-h-screen bg-slate-950 pt-24 px-6 pb-12 text-white">
+    <div className="min-h-screen pt-24 px-6 pb-12 text-white">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
           Análisis de tu Biblioteca
         </h1>
+
+        {/* Valoraciones: nota media y podio con el top 3 */}
+        <div className="mb-10">
+          <TarjetaGrafico icono={<Star size={20} className="text-yellow-400" />} titulo="Tus valoraciones">
+            {!data.juegosValorados ? (
+              <EstadoVacio texto="Valora juegos de tu biblioteca para ver tu nota media y tu podio" />
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                <NotaMedia nota={data.notaMedia} valorados={data.juegosValorados} />
+                <div className="lg:col-span-2">
+                  <Podio juegos={data.topValorados || []} />
+                </div>
+              </div>
+            )}
+          </TarjetaGrafico>
+        </div>
 
         {/* Tarjetas de Resumen */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
@@ -255,6 +280,76 @@ function TarjetaGrafico({ icono, titulo, children }) {
     <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl min-w-0">
       <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">{icono}{titulo}</h3>
       {children}
+    </div>
+  );
+}
+
+// Nota media sobre 10 con una barra de estrellas rellenada en proporción
+function NotaMedia({ nota, valorados }) {
+  const relleno = `${(nota / 10) * 100}%`;
+  const colores = coloresNota(nota);
+  return (
+    <div className="flex flex-col items-center text-center">
+      <p className="text-slate-500 text-sm mb-2">Nota media</p>
+      <p className={`text-6xl font-bold tabular-nums ${colores.texto}`}>
+        {nota.toFixed(1)}
+        <span className="text-2xl text-slate-500 font-semibold"> / 10</span>
+      </p>
+      <div className="relative mt-4 text-2xl tracking-widest leading-none" aria-hidden="true">
+        <span className="text-slate-700">★★★★★</span>
+        <span className={`absolute inset-0 overflow-hidden whitespace-nowrap ${colores.texto}`} style={{ width: relleno }}>★★★★★</span>
+      </div>
+      <p className="text-slate-500 text-xs mt-3">
+        Basada en {valorados} {valorados === 1 ? 'juego valorado' : 'juegos valorados'}
+      </p>
+    </div>
+  );
+}
+
+// Podio con los tres juegos mejor valorados. Si hay menos de tres,
+// el pedestal vacío se mantiene para no descolocar el conjunto.
+function Podio({ juegos }) {
+  return (
+    <div className="grid grid-cols-3 gap-3 sm:gap-5 items-end max-w-xl mx-auto">
+      {PUESTOS_PODIO.map(({ posicion, color, altura }) => {
+        const juego = juegos[posicion - 1];
+        return (
+          <div key={posicion} className="flex flex-col items-center min-w-0">
+            {juego ? (
+              <>
+                <div
+                  className={`w-full aspect-[3/4] rounded-xl overflow-hidden bg-slate-800 border-2 shadow-lg ${posicion === 1 ? 'shadow-yellow-500/20' : ''}`}
+                  style={{ borderColor: color }}
+                >
+                  {juego.caratulaUrl ? (
+                    <img src={juego.caratulaUrl} alt={juego.titulo} className="w-full h-full object-cover" loading="lazy" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Gamepad2 size={36} className="text-slate-600" />
+                    </div>
+                  )}
+                </div>
+                <p className="mt-2 text-sm text-slate-200 font-medium text-center truncate w-full" title={juego.titulo}>
+                  {juego.titulo}
+                </p>
+                <div className={`flex items-center gap-1 mt-1 mb-2 px-2.5 py-1 rounded-full border ${coloresNota(juego.valoracion).fondo}`}>
+                  <span className={`text-base leading-none ${coloresNota(juego.valoracion).texto}`}>★</span>
+                  <span className={`text-base font-semibold tabular-nums ${coloresNota(juego.valoracion).texto}`}>{juego.valoracion.toFixed(1)}</span>
+                </div>
+              </>
+            ) : (
+              <div className="w-full aspect-[3/4] rounded-xl border-2 border-dashed border-slate-800 mb-12" />
+            )}
+            {/* Pedestal */}
+            <div
+              className={`w-full ${altura} rounded-t-lg bg-slate-800 border-t-4 flex items-start justify-center pt-2`}
+              style={{ borderColor: color }}
+            >
+              <span className="text-2xl font-bold" style={{ color }}>{posicion}º</span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

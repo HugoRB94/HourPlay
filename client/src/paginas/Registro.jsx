@@ -4,6 +4,7 @@ import { User, Mail, Lock } from 'lucide-react';
 // Importamos el contexto para poder avisarle al sistema que ya estamos logueados
 import { AuthContext } from '../contextos/AuthContext';
 import { API_URL } from '../servicios/api';
+import BotonesSociales from '../components/BotonesSociales';
 
 function Registro() {
   const [nombre, setNombre] = useState('');
@@ -56,7 +57,7 @@ function Registro() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl w-full max-w-md text-white">
         <h2 className="text-3xl text-center mb-8 font-normal">Crear cuenta en HourPlay</h2>
         
@@ -119,6 +120,8 @@ function Registro() {
             Registrarme y Entrar
           </button>
         </form>
+
+        <BotonesSociales />
 
         <p className="text-slate-400 text-sm text-center mt-6">
           ¿Ya tienes una cuenta? <Link to="/login" className="text-cyan-400 hover:text-cyan-300">Inicia sesión aquí</Link>

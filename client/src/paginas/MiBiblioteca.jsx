@@ -4,10 +4,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Pencil, Trash2, Search, Filter, ArrowUpDown, Calendar } from 'lucide-react';
 import { obtenerJuegosUsuario, eliminarJuego } from '../servicios/api';
+import { useNotificaciones } from '../contextos/NotificacionesContext';
 import BuscadorJuegos from '../components/BuscadorJuegos';
 import EditorJuego from '../components/EditorJuego';
+import { coloresNota } from '../utilidades/coloresNota';
 
 function MiBiblioteca() {
+  const { notificar, confirmar } = useNotificaciones();
   const [juegos, setJuegos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -105,11 +108,13 @@ function MiBiblioteca() {
   }, [juegos, busqueda, filtroEstado, ordenacion]);
 
   const handleEliminarJuego = async (juegoId, tituloJuego) => {
-    const confirmar = window.confirm(
-      `¿Estás seguro de que quieres eliminar "${tituloJuego}" de tu biblioteca?`
-    );
+    const aceptado = await confirmar({
+      titulo: 'Eliminar juego',
+      mensaje: `¿Estás seguro de que quieres eliminar "${tituloJuego}" de tu biblioteca?`,
+      textoConfirmar: 'Eliminar'
+    });
 
-    if (!confirmar) return;
+    if (!aceptado) return;
 
     try {
       // Para la eliminación de registros, únicamente enviamos el identificador 
@@ -118,14 +123,14 @@ function MiBiblioteca() {
       const respuesta = await eliminarJuego(juegoId);
 
       if (respuesta.exito) {
-        alert('Juego eliminado correctamente');
+        notificar(`"${tituloJuego}" eliminado de tu biblioteca`);
         cargarJuegos(); // Recargar la lista
       } else {
-        alert('Error al eliminar el juego');
+        notificar('Error al eliminar el juego', 'error');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al eliminar el juego');
+      notificar('Error al eliminar el juego', 'error');
     }
   };
 
@@ -328,7 +333,8 @@ function MiBiblioteca() {
             ) : (
               <>
                 {/* Grid de juegos */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* En móvil muestro 2 columnas con menos separación para aprovechar el ancho */}
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
                   {juegosFiltradosYOrdenados.map((juego) => (
                 <div 
                   key={juego.id} 
@@ -340,43 +346,43 @@ function MiBiblioteca() {
                       <img 
                         src={juego.caratulaUrl} 
                         alt={juego.titulo}
-                        className="w-full h-48 object-cover"
+                        className="w-full h-32 sm:h-48 object-cover"
                       />
-                      
-                      {/* Botones de acción (aparecen al hacer hover) */}
-                      <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                      {/* Botones de acción (aparecen al hacer hover; en móvil siempre visibles porque no hay hover) */}
+                      <div className="absolute top-2 right-2 flex gap-1.5 sm:gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => setJuegoEditando(juego)}
-                          className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-all"
+                          className="bg-blue-600 hover:bg-blue-500 text-white p-1.5 sm:p-2 rounded-lg transition-all"
                           title="Editar juego"
                         >
-                          <Pencil size={18} />
+                          <Pencil size={16} />
                         </button>
                         <button
                           onClick={() => handleEliminarJuego(juego.id, juego.titulo)}
-                          className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-lg transition-all"
+                          className="bg-red-600 hover:bg-red-500 text-white p-1.5 sm:p-2 rounded-lg transition-all"
                           title="Eliminar juego"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </div>
                   )}
                   
                   {/* Info del juego */}
-                  <div className="p-4">
-                    <h3 className="text-white font-normal text-lg mb-2">
+                  <div className="p-3 sm:p-4">
+                    <h3 className="text-white font-normal text-sm sm:text-lg mb-1 sm:mb-2 line-clamp-2">
                       {juego.titulo}
                     </h3>
-                    
-                    <p className="text-slate-400 text-sm mb-3">
+
+                    <p className="text-slate-400 text-xs sm:text-sm mb-3">
                       {juego.genero} • {juego.plataforma}
                     </p>
 
                     {/* Estado */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <span 
-                        className={`px-3 py-1 rounded-full text-xs font-semibold
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      <span
+                        className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold
                           ${juego.estado === 'pendiente' ? 'bg-yellow-900/30 text-yellow-400' : ''}
                           ${juego.estado === 'jugando' ? 'bg-blue-900/30 text-blue-400' : ''}
                           ${juego.estado === 'completado' ? 'bg-green-900/30 text-green-400' : ''}
@@ -393,24 +399,27 @@ function MiBiblioteca() {
 
                     {/* Duración */}
                     {juego.duracionPrincipal && (
-                      <p className="text-slate-400 text-sm mb-3">
+                      <p className="text-slate-400 text-xs sm:text-sm mb-3">
                         ⏱️ Historia: {juego.duracionPrincipal}h
                         {juego.duracionTotal && ` • 100%: ${juego.duracionTotal}h`}
                       </p>
                     )}
                     
                     {/* Valoración del usuario */}
-                    {juego.valoracion && (
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="flex items-center gap-1 bg-yellow-900/20 px-3 py-1 rounded-full border border-yellow-600/30">
-                          <span className="text-yellow-400 text-lg">★</span>
-                          <span className="text-yellow-400 font-normal text-sm">
-                            {juego.valoracion.toFixed(1)}
-                          </span>
-                          <span className="text-yellow-600 text-xs">/10</span>
+                    {juego.valoracion && (() => {
+                      const colores = coloresNota(juego.valoracion);
+                      return (
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border ${colores.fondo}`}>
+                            <span className={`text-xl leading-none ${colores.texto}`}>★</span>
+                            <span className={`font-semibold text-base tabular-nums ${colores.texto}`}>
+                              {juego.valoracion.toFixed(1)}
+                            </span>
+                            <span className={`text-sm ${colores.suave}`}>/10</span>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Barra de progreso */}
                     {juego.progreso > 0 && (
@@ -429,8 +438,9 @@ function MiBiblioteca() {
                     )}
 
                     {/* Notas personales (si existen) */}
+                    {/* En móvil las oculto para que las tarjetas no queden demasiado largas */}
                     {juego.notasPersonales && (
-                      <div className="mt-3 p-3 bg-slate-900 rounded border border-slate-700">
+                      <div className="hidden sm:block mt-3 p-3 bg-slate-900 rounded border border-slate-700">
                         <p className="text-slate-400 text-xs italic">
                           "{juego.notasPersonales.length > 100 
                             ? juego.notasPersonales.substring(0, 100) + '...' 
@@ -440,7 +450,7 @@ function MiBiblioteca() {
                     )}
 
                     {/* Fecha de añadido */}
-                    <div className="mt-3 pt-3 border-t border-slate-700 flex items-center gap-2 text-slate-500 text-xs">
+                    <div className="mt-3 pt-3 border-t border-slate-700 hidden sm:flex items-center gap-2 text-slate-500 text-xs">
                       <Calendar size={12} />
                       <span>
                         Añadido el {new Date(juego.fechaAgregado).toLocaleDateString('es-ES', {

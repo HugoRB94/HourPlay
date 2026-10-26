@@ -1,12 +1,26 @@
 // paginas/Login.jsx
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { User, Lock } from 'lucide-react';
 import { API_URL } from '../servicios/api';
+import BotonesSociales from '../components/BotonesSociales';
+
+// Mensajes para los códigos de error con los que el servidor devuelve al login
+// cuando falla el acceso con Google, Apple, Facebook o GitHub
+const ERRORES_OAUTH = {
+  cancelado: 'Se canceló el inicio de sesión.',
+  proveedor_no_disponible: 'Ese método de acceso no está disponible.',
+  state_invalido: 'La solicitud de inicio de sesión caducó. Inténtalo de nuevo.',
+  email_en_uso: 'Ya existe una cuenta con ese correo. Inicia sesión con tu contraseña.',
+  error_proveedor: 'No se pudo completar el inicio de sesión. Inténtalo de nuevo.',
+  error_servidor: 'Error del servidor. Inténtalo más tarde.',
+};
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [parametros] = useSearchParams();
+  const [error, setError] = useState(ERRORES_OAUTH[parametros.get('error')] || '');
 
   const manejarEnvio = async (e) => {
     e.preventDefault();
@@ -38,7 +52,7 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl w-full max-w-md text-white">
         <h2 className="text-3xl text-center mb-8 font-normal text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
           Iniciar Sesión
@@ -88,6 +102,8 @@ function Login() {
             Entrar a mi Biblioteca
           </button>
         </form>
+
+        <BotonesSociales />
 
         <p className="text-slate-400 text-sm text-center mt-6">
           ¿No tienes cuenta? <a href="/registro" className="text-cyan-400 hover:text-cyan-300 transition-colors">Regístrate aquí</a>

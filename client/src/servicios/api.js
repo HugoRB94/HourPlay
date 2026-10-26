@@ -250,6 +250,25 @@ export const crearSesion = async (datosSesion) => {
 };
 
 /**
+ * Marca una sesión como realizada o la devuelve a planificada
+ * @param {string} sesionId - ID de la sesión
+ * @param {boolean} completada - Nuevo estado de la sesión
+ * @returns {Promise} Promesa con la confirmación
+ */
+export const marcarSesionCompletada = async (sesionId, completada) => {
+  try {
+    const respuesta = await fetchSeguro(`${API_URL}/sesiones/${sesionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ completada }),
+    });
+    return await respuesta.json();
+  } catch (error) {
+    console.error('Error al actualizar sesión:', error);
+    throw error;
+  }
+};
+
+/**
  * Elimina una sesión del calendario
  * @param {string} sesionId - ID de la sesión a eliminar
  * @returns {Promise} Promesa con la confirmación

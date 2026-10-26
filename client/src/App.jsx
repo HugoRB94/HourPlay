@@ -4,6 +4,7 @@
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import BarraNavegacion from './components/BarraNavegacion';
+import FondoDifuminado from './components/FondoDifuminado';
 import Inicio from './paginas/Inicio';
 import MiBiblioteca from './paginas/MiBiblioteca';
 import Recomendador from './paginas/Recomendador';
@@ -15,6 +16,7 @@ import Registro from './paginas/Registro';
 
 // Importaciones del sistema de seguridad
 import { AuthProvider } from './contextos/AuthContext';
+import { NotificacionesProvider } from './contextos/NotificacionesContext';
 import RutaProtegida from './components/RutaProtegida';
 
 function App() {
@@ -25,11 +27,18 @@ function App() {
     // de autenticación sin necesidad de pasar propiedades manualmente.
     <AuthProvider>
       
+      {/* Avisos y confirmaciones propios disponibles en toda la app */}
+      <NotificacionesProvider>
       {/* BrowserRouter habilita el sistema de rutas. Envuelve toda la aplicación. */}
       <BrowserRouter>
         
-        {/* Contenedor principal con fondo oscuro y texto claro */}
-        <div className="min-h-screen bg-slate-950 text-white">
+        {/* Contenedor principal con fondo oscuro y texto claro. "relative isolate" crea
+            un contexto de apilamiento para que el fondo (-z-10) quede encima del color
+            base pero detrás de todo el contenido */}
+        <div className="relative isolate min-h-screen bg-slate-950 text-white">
+
+          {/* Fondo difuminado de carátulas en todas las secciones (menos el inicio) */}
+          <FondoDifuminado />
           
           {/* La barra de navegación es persistente en todas las secciones */}
           <BarraNavegacion />
@@ -107,6 +116,7 @@ function App() {
           </Routes>
         </div>
       </BrowserRouter>
+      </NotificacionesProvider>
     </AuthProvider>
   );
 }

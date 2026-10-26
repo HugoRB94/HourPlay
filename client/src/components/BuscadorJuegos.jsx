@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Plus, X, Loader2 } from 'lucide-react';
 import { buscarJuegos, añadirJuego } from '../servicios/api';
+import { useNotificaciones } from '../contextos/NotificacionesContext';
 
 // Búsqueda mientras se escribe. Solo consulta RAWG (nunca HowLongToBeat), y
 // para no gastar la cuota se espera a que el usuario deje de teclear, se exige
@@ -11,6 +12,7 @@ const MINIMO_CARACTERES = 3;
 const cacheBusquedas = new Map(); // Compartida entre aperturas del modal
 
 function BuscadorJuegos({ onJuegoAñadido }) {
+  const { notificar } = useNotificaciones();
   const [busqueda, setBusqueda] = useState('');
   const [resultados, setResultados] = useState([]);
   const [buscando, setBuscando] = useState(false);
@@ -94,15 +96,15 @@ function BuscadorJuegos({ onJuegoAñadido }) {
       if (respuesta.exito) {
         if (onJuegoAñadido) onJuegoAñadido(respuesta.datos);
         cerrarModal();
-        alert(respuesta.datos.duracionPrincipal
+        notificar(respuesta.datos.duracionPrincipal
           ? `¡Juego añadido! Duración estimada: ${respuesta.datos.duracionPrincipal}h`
           : '¡Juego añadido! No se encontró su duración; puedes indicarla desde el editor.');
       } else {
-        alert(respuesta.mensaje || 'No se pudo añadir el juego');
+        notificar(respuesta.mensaje || 'No se pudo añadir el juego', 'error');
       }
     } catch (error) {
       console.error('Error al añadir juego:', error);
-      alert('Error al añadir. Revisa la consola (F12) para más info.');
+      notificar('Error al añadir el juego. Revisa tu conexión.', 'error');
     } finally {
       setAñadiendoId(null);
     }

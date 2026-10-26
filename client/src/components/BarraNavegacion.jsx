@@ -3,9 +3,9 @@
 // para que la navegación sea instantánea (sin recargar la página).
 // Esto mejora significativamente la experiencia de usuario en aplicaciones SPA.
 
-import { useContext } from 'react';
-import { Gamepad2, Library, Sparkles, Info, Calendar, BarChart3 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useContext, useState } from 'react';
+import { Gamepad2, Library, Sparkles, Info, Calendar, BarChart3, Menu, X } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contextos/AuthContext';
 import { API_URL } from '../servicios/api';
 
@@ -20,6 +20,13 @@ function BarraNavegacion() {
   // Esto permite que el componente de navegación reaccione de forma reactiva
   // a los cambios de estado sin necesidad de refrescar la página.
   const { usuario, setUsuario } = useContext(AuthContext);
+
+  // Estado del menú desplegable en móvil (botón hamburguesa).
+  // Lo cierro al pulsar cualquier enlace para que no quede abierto
+  // tapando la página a la que acaba de navegar el usuario.
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const location = useLocation();
+  const cerrarMenu = () => setMenuAbierto(false);
 
   const manejarCierreSesion = async () => {
     try {
@@ -53,11 +60,11 @@ function BarraNavegacion() {
     // (backdrop-blur-md) crea un efecto glassmorphism moderno.
     // z-50 asegura que esté siempre por encima de otros elementos.
     <nav className="fixed top-0 w-full bg-slate-900/80 backdrop-blur-md border-b border-slate-800 z-50">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
 
         {/* Logo clicable que lleva al inicio */}
         {/* Uso Link en lugar de a para navegación SPA sin recarga de página */}
-        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <Link to="/" onClick={cerrarMenu} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Gamepad2 className="text-cyan-400" size={28} />
           <span className="text-xl font-normal text-white tracking-tight">
             HourPlay
@@ -86,17 +93,18 @@ function BarraNavegacion() {
             técnica esencial en el desarrollo de interfaces dinámicas con React. 
             Si el objeto usuario existe, se muestra la opción de cierre de sesión. 
             Si el valor es nulo, se muestra el botón de acceso público. */}
-        <div className="flex items-center">
+        {/* En móvil este botón pasa al menú desplegable, por eso uso hidden md:flex */}
+        <div className="hidden md:flex items-center">
           {usuario ? (
-            <button 
+            <button
               onClick={manejarCierreSesion}
               className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-normal transition-all"
             >
               Cerrar Sesión
             </button>
           ) : (
-            <Link 
-              to="/login" 
+            <Link
+              to="/login"
               className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg text-sm font-normal transition-all"
             >
               Iniciar Sesión
@@ -104,7 +112,61 @@ function BarraNavegacion() {
           )}
         </div>
 
+        {/* Botón hamburguesa (solo móvil) */}
+        <button
+          onClick={() => setMenuAbierto(!menuAbierto)}
+          className="md:hidden text-slate-300 hover:text-cyan-400 p-2 -mr-2 transition-colors"
+          aria-label={menuAbierto ? 'Cerrar menú' : 'Abrir menú'}
+          aria-expanded={menuAbierto}
+        >
+          {menuAbierto ? <X size={26} /> : <Menu size={26} />}
+        </button>
+
       </div>
+
+      {/* Menú desplegable móvil */}
+      {/* Mantiene el mismo estilo glassmorphism que la barra y reutiliza rutasMenu,
+          así cualquier sección nueva aparece automáticamente en ambos menús. */}
+      {menuAbierto && (
+        <div className="md:hidden border-t border-slate-800 bg-slate-900/95 backdrop-blur-md">
+          <div className="px-4 py-3 flex flex-col gap-1">
+            {rutasMenu.map((item) => {
+              const activa = location.pathname === item.ruta;
+              return (
+                <Link
+                  key={item.etiqueta}
+                  to={item.ruta}
+                  onClick={cerrarMenu}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors
+                    ${activa ? 'bg-slate-800 text-cyan-400' : 'text-slate-300 hover:bg-slate-800 hover:text-cyan-400'}`}
+                >
+                  {item.icono}
+                  <span className="text-base font-medium">{item.etiqueta}</span>
+                </Link>
+              );
+            })}
+
+            <div className="mt-2 pt-3 border-t border-slate-800">
+              {usuario ? (
+                <button
+                  onClick={() => { cerrarMenu(); manejarCierreSesion(); }}
+                  className="w-full bg-red-600 hover:bg-red-500 text-white px-4 py-3 rounded-lg text-sm font-normal transition-all"
+                >
+                  Cerrar Sesión
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={cerrarMenu}
+                  className="block w-full text-center bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-3 rounded-lg text-sm font-normal transition-all"
+                >
+                  Iniciar Sesión
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

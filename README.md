@@ -48,6 +48,28 @@ npx prisma db push
 npm run dev
 ```
 
+### Inicio de sesión con Google, Apple, Facebook y GitHub (opcional)
+
+Cada proveedor se activa al rellenar sus claves en `.env` (ver `.env.example`); los que no estén configurados aparecen desactivados en las pantallas de acceso y registro.
+
+En la consola de desarrollador de cada proveedor hay que registrar esta URL de retorno:
+
+```
+{SERVER_URL}/api/auth/oauth/{proveedor}/callback
+```
+
+Por ejemplo, en local: `http://localhost:3000/api/auth/oauth/google/callback`.
+
+| Variable                                       | Dónde se obtiene                                                                 |
+| ---------------------------------------------- | -------------------------------------------------------------------------------- |
+| `SERVER_URL`                                   | URL pública del backend (por defecto `http://localhost:3000`)                    |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`     | Google Cloud Console → Credenciales → ID de cliente OAuth (aplicación web)       |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`     | GitHub → Settings → Developer settings → OAuth Apps                              |
+| `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`       | Meta for Developers → app con el producto "Inicio de sesión con Facebook"        |
+| `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` | Apple Developer → Services ID, Team ID y una clave "Sign in with Apple" (.p8) |
+
+Apple solo funciona con HTTPS y un dominio real (no admite `localhost`) y requiere una cuenta de Apple Developer de pago. Tras iniciar sesión, el usuario vuelve al frontend indicado en `CLIENT_URL` (en local, `http://localhost:5173`).
+
 ## 2. Cliente (frontend)
 
 En otra terminal, con el servidor en marcha:

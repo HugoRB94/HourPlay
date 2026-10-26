@@ -59,6 +59,32 @@ router.post('/', async (req, res) => {
   }
 });
 
+// ============ PATCH /api/sesiones/:id ============
+// Marca una sesión como realizada (o la devuelve a planificada).
+// Igual que en el borrado, filtramos también por usuarioId para que nadie
+// pueda modificar una sesión ajena conociendo solo su ID.
+router.patch('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const usuarioId = req.session.usuarioId;
+    const completada = Boolean(req.body.completada);
+
+    const resultado = await prisma.sesion.updateMany({
+      where: { id: id, usuarioId: usuarioId },
+      data: { completada }
+    });
+
+    if (resultado.count === 0) {
+      return res.status(404).json({ error: 'Sesión no encontrada' });
+    }
+
+    res.json({ mensaje: 'Sesión actualizada correctamente', completada });
+  } catch (error) {
+    console.error('Error al actualizar sesión:', error);
+    res.status(500).json({ error: 'Error al actualizar la sesión' });
+  }
+});
+
 // ============ DELETE /api/sesiones/:id ============
 // Esta operación realiza un borrado físico en la tabla 'sesion' de MySQL.
 // Por seguridad, la cláusula 'where' incluye el usuarioId de la sesión para
